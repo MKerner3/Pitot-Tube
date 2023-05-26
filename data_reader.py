@@ -10,7 +10,7 @@ ser = serial.Serial('COM5', 9600, timeout=1)
 
 #time.sleep(2)
 num_pts = 10000
-fs = 1000
+sr = 30000
 data = deque()
 times = deque()
 cont = True
