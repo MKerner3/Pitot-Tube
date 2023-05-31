@@ -6,18 +6,20 @@ from collections import deque
 import keyboard
 
 #Arduino set to COM5
+#If this errors, switch the value next to COM with what COM port you are talking on.
 ser = serial.Serial('COM5', 9600, timeout=1)
 
+#Variable/Data structure initialization
 #time.sleep(2)
 num_pts = 10000
 sr = 30000
-data = deque()
+data = deque() #Pythons version of a linked list.
 times = deque()
 cont = True
 start_time = time.time()
 prev_time = time.time()
 
-
+# Not the most elegant solution, but works to stop data reading for now.
 def on_key_press(event):
      global cont
      if event.name == 'ctrl':
@@ -46,6 +48,8 @@ while cont:
                 data.append(num) 
             except ValueError:
                 continue #Rejects bad string and continues while loop
+
+            #TODO Implement fourier transform calculations from test.py
             fft_of_sample = np.fft.fft(data)
             fft_amplitudes = 2.0 / num_pts * np.abs(fft_of_sample)
             print(len(fft_amplitudes))
@@ -53,7 +57,7 @@ while cont:
             harmonics = np.arange(1, 250)
 
         if len(data) > num_pts: #Update array with new values and delete old values
-            r_head = data.popleft() #temp stores old value
+            r_head = data.popleft() #r_head temporarily stores the replaced old value.
 
         
 
@@ -72,6 +76,7 @@ while cont:
 
 keyboard.unhook_all()
 
+#Prints/Plots some diagnostic info to look at code behavior.
 print(len(harmonics))
 print(len(fft_amplitudes))
 fig = plt.figure(figsize=(9, 4))
@@ -80,27 +85,4 @@ plt.show()
 
 print("Finished")
 
-
-#plt.xlim(current_time - num_secs, current_time)    
-#plt.plot(times, data)
-#plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda val, _: f'{val:.1f}'))
-#plt.draw()
-#plt.pause(0.001)
-#plt.cla()
-
 ser.close()
-
-
-
-
-
-
-
-"""
-#build plot
-plt.plot(data)
-plt.xlabel('Time')
-plt.ylabel('Reading')
-plt.title('Reading vs. Time')
-plt.show
-"""
