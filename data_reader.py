@@ -34,8 +34,7 @@ keyboard.on_press(on_key_press)
 
 while cont:
     current_time = time.perf_counter() - start_time
-
-    times.append(current_time)
+    print(current_time)
 
     line = ser.readline() #read a byte
     if line:
@@ -45,13 +44,14 @@ while cont:
             try:
                 num = round(float(string), 16) #convert unicode string to int
                 #print(num)
+                times.append(current_time)
                 data.append(num) 
             except ValueError:
                 continue #Rejects bad string and continues while loop
             
-            print(len(data))
+            #print(len(data))
 
-            if len(times) != 0 and len(data) > num_pts:
+            if len(times) != 0 and times[-1] - times[0] > 6.28: #len(data) > num_pts:
                 data.popleft()
                 times.popleft()
             
@@ -67,7 +67,7 @@ while cont:
             #fft_phases = np.angle(fft_of_sample)
             #harmonics = np.arange(1, 250)
 
-            if len(data) == num_pts:
+            if times[-1] - times[0] > 6.28:
                 data_copy = np.array(data)
                 fft_of_sample = np.fft.fft(data_copy)
                 fft_amplitudes = 2.0 / num_pts * np.abs(fft_of_sample)
@@ -78,6 +78,9 @@ while cont:
 keyboard.unhook_all()
 
 #Prints/Plots some diagnostic info to look at code behavior.
+plt.plot(times, data)
+plt.show()
+
 print(len(harmonics))
 print(len(fft_amplitudes))
 fig = plt.figure(figsize=(9, 4))
