@@ -73,7 +73,7 @@ while cont:
                 fft_amplitudes = 2.0 / num_pts * np.abs(fft_of_sample)
                 print(len(fft_amplitudes))
                 fft_phases = np.angle(fft_of_sample)
-                harmonics = np.arange(1, 250)
+                harmonics = np.arange(1, 1500)
 
 keyboard.unhook_all()
 
