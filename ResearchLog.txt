@@ -1,0 +1,66 @@
+5/16:
+Reviewed Pitot Probe Physics.
+Made Preliminary list of Parts for initial Pitot Probe.
+Researched differences in ADC resolution and precision, which
+will be a limiting factor at low and high airspeeds.
+Researched different pressure transducers that work with
+an arduino, and operating ranges
+Found some pitot probe kits.
+
+5/17
+Determined wiring diagrams for pressure sensor and adc to arduino board.
+Downloaded some software libraries for ADC interface and
+example code for Pressure transducer.
+
+5/19
+Refreshed some python knowledge
+Learned ways to signal process with python
+Refreshed on filter types, fourier transforms
+Learned how to apply a butterworth filter to a signal in python
+
+5/20
+Made a real time frequency reader
+Can take in time data and sensor data and output it in a linked list data structure that updates with time
+Started on researching how to plot the graph faster
+
+5/22
+Assembled Pitot Probe and ADS on wiring diagram
+Configured Arduino to read pressure readings using tutorial code
+Configured anaconda to work with arduino and read serial data
+
+5/23
+Updated code to reject empty values
+Integrated ADS1256 into system, made pitot readings more accurate.
+
+5/24
+Cut extra Pitot Tube to see how it is built
+Implemented first version of a Fourier transform in data reader
+Found a way to use a tone generator to make an oscillating airspeed to test transform against
+
+5/25
+Tried fixing fourier transform, not much success
+Looked into smaller steel tubes on mcmastercarr
+
+5/26
+Implemented working version of a fourier transform
+Implemented preliminary butterworth filter
+
+5/30
+Made a CAD model of the pitot probe.
+Researched plastic tubing links for the second iteration probe.
+
+6/1
+Started designing pitot tube mount. Mostly finished but needs a mount shell to close the mount and fit the tube with.
+
+6/2
+Designed mount shell and updated assembly to include mount shell.
+Updated mount to have dowel holes and cable hole for the pressure sensor wires to be routed through.
+
+6/5
+Researched threading methods for 3d printed holes. Heat set inserts seemed to be the best method.
+Polished mount parts to be ready for 3D printing. Made tolerance estimates and saved finalized STL files.
+
+6/6
+Sent in 3D print of mount into AMS.
+Fixed Fourier transform accuracy issue.
+
