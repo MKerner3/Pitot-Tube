@@ -124,18 +124,5 @@ plt.ylabel('FFT Amplitude |X(freq)|')
 plt.xlim(0,700)
 plt.show()
 
-
-#FIXME fix filter, unsure whats going on
-#TODO design method to choose cutoff frequency for excess noise (fix the filter first)
-#fc = 60 * (2 * np.pi)
-#normed = fc / (sr / 2)
-#sos = signal.butter(N=4, Wn= fc / (40), btype='lowpass', output='sos', fs=30000)
-#filtered = signal.sosfilt(sos,data)
-#plt.plot(times, filtered)
-#plt.show()
-
-#plt.plot(times, data2)
-#plt.show()
-
 print("Finished")
 
