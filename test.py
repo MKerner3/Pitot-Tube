@@ -21,7 +21,7 @@ total_time = 1.5 #Total desired time interval
 # Frequency function that will be plotted against time.
 def freq(times):
      #2*np.pi*
-     return np.sin(2*np.pi*20*times) + np.sin(2*np.pi*75*times)
+     return np.sin(2*np.pi*20*times) + np.sin(2*np.pi*300*times)
 
 # Second frequency function that does not include the higher frequency sine wave.
 # Use this to verify / compare the butterworth filter with.
@@ -94,6 +94,30 @@ print(N)
 plt.figure(figsize = (12,6))
 plt.stem(frequency, P1, 'b', \
          markerfmt=" ", basefmt="-b")
+plt.xlabel('Freq (Hz)')
+plt.grid()
+plt.ylabel('FFT Amplitude |X(freq)|')
+plt.xlim(0,700)
+plt.show()
+
+filter_order = 10
+critical_frequencies = [150]
+sos = signal.butter(N=filter_order, Wn = critical_frequencies, btype='lowpass', \
+                    output = 'sos', fs=sr)
+filtered = signal.sosfilt(sos,data)
+
+Z = np.fft.fft(filtered)
+S = len(Y)
+s = np.arange(S)
+U = S/sr
+filtfreq = sr * np.arange(0,int(S/2))/S
+
+P4 = np.abs(Z/S)
+P3 = P4[0:int(S/2)]
+P3[1:-2] = 2*P3[1:-2]
+
+plt.stem(filtfreq, P3, 'g', \
+         markerfmt=" ", basefmt="-g")
 plt.xlabel('Freq (Hz)')
 plt.grid()
 plt.ylabel('FFT Amplitude |X(freq)|')
