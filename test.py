@@ -22,7 +22,7 @@ total_time = 1.5  # Total desired time interval
 # Frequency function that will be plotted against time.
 def freq(times):
     # 2*np.pi*
-    return np.sin(2*np.pi*20*times) + np.sin(2*np.pi*450*times)
+    return np.sin(2*np.pi*20*times) + np.sin(2*np.pi*600*times)
 
 
 # Second frequency function that does not include a higher frequency sine wave.
