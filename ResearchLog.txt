@@ -68,3 +68,71 @@ Fixed Fourier transform accuracy issue.
 Corrected Butterworth filter in test.py
 Implemented fourier transform and butterworth filter from test.py into data_reader.py
 Added python linting style checker
+
+6/8
+Made some preliminary CAD for V1 Pitot Probe
+Got info about pressure probe data collection from LTWT
+
+6/9
+Got 3D print of mock mount and tested tolerances for pressure transducer and pitot tube
+Analyzed small tolerance mistake near the mount front
+Started refined CAD for pitot tube shell, which converges towards the front (resembles jet nose)
+
+6/12
+Made a CAD of the new mount shell attached to a mounting plate setup
+Discussed how to refine CAD model, ended up integrating the bottom part of the shell into the mounting plate and only needing to screw the top shell on
+
+6/13
+Sent pitot tube mount parts in to print
+Began refining CAD of pitot tube V1
+
+6/14
+Finished first draft of CAD for pitot tube V1
+Made design changes after discussion (corrected some oversights in design)
+
+6/15
+Looked for pressure transducers that could be used in future pitot probe iterations
+Started an excel spreadsheet of pressure transducers and important design properties associated with the transducers
+
+6/16
+Continued research into buying pressure transducers
+Ended up with two transducers that were set to be ordered
+
+6/19
+Got 3D print of pitot mount assembly.
+Took day off, most buildings and facilities were closed
+
+
+6/20
+Took support material off 3D print and tapped threads into all screw holes on the 3D print.
+Test fit pitot mount in LTWT. Looked good. Cap screw on bottom plate by mount shell stuck out a little but the connection was secure.
+
+6/21
+Tried to get labview working for laptop (LTWT PC had sign on issues).
+Began revisting CAD of pitot tube V1.
+
+6/22
+Compiled parts list for pitot probe V1.
+Designed a probe tip that can be 3D printed and epoxy glued to the rest of the pitot tube.
+
+6/23
+Tried to wind tunnel test the probe, was not able to do so (labview for computer was not working properly).
+Unsuccessfully tried to diagnose the issue but stayed in touch with lab manager to continue diagnosing on monday.
+
+
+6/26
+Helped diagnose wind tunnel sign in issue with lab manager.
+Read and annotated oxford probe research article.
+Looked into manufacturing methods for smaller pitot probes.
+
+6/27
+Performed first wind tunnel test.
+Recorded wind tunnel pitot tube data and data from pitot tube V0 at 0,30,60,100% wind tunnel power.
+Re-structured some of the test files to account for a bug that caused the pitot tube to reset itself to zero windspeed on launch.
+
+6/28
+Read and annotated pitot millimeter scale pitot probe article
+Compiled future research articles for probe development and calibration
+
+6/29
+Started analyzing probe data that was collected on tuesday. Pushed data to github, started working on code to process data from both files

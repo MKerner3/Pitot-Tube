@@ -6,6 +6,7 @@ import numpy as np
 from collections import deque
 import keyboard
 from scipy import signal
+import openpyxl
 
 # Variable/Data structure initialization
 num_pts = 3000
@@ -17,6 +18,13 @@ range = 2*np.pi
 cont = True
 start_time = time.perf_counter()
 total_time = 1.5  # Total desired time interval
+i = 0
+
+wb = openpyxl.Workbook()
+ws = wb.active
+last_row = ws.max_row + 1
+ws.cell(row=1, column=1).value = "Time Elapsed"
+ws.cell(row=1, column=2).value = "Data Value"
 
 
 # Frequency function that will be plotted against time.
@@ -46,10 +54,14 @@ while cont:
     # print(elapsed_time)
 
     times.append(elapsed_time)
+    ws.cell(row=last_row+i, column=1).value = elapsed_time
     data.append(freq(elapsed_time))
+    ws.cell(row=last_row+i, column=2).value = freq(elapsed_time)
     data2.append(freq2(elapsed_time))
     # print(freq(elapsed_time))
     # print(len(data))
+
+    i += 1
 
     if len(times) != 0 and len(data) > num_pts:
         data.popleft()
@@ -75,6 +87,8 @@ while cont:
     P1[1:-2] = 2*P1[1:-2]
 
 keyboard.unhook_all()
+
+wb.save('output.xlsx')
 
 # Plots time data and fourier transform in separate plots.
 plt.plot(times, data)
