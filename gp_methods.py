@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.linalg import expm
+from scipy.linalg import solve_discrete_are
 
 
 def gp_solve(w, x, y, k, xt):
@@ -44,7 +46,7 @@ def gp_solve(w, x, y, k, xt):
         K21 = k(np.subtract.outer(xt, x), param[1:])
 
         # Solve the mean
-        Eft = K21 * alpha
+        Eft = K21 @ alpha
 
         # Solve the variance
         v = np.linalg.solve(L, K21.T)
@@ -171,5 +173,299 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
 
 
 def ihgpr(w, x, y, ss, xt, filteronly, opt, w0):
+    # *Check defaults*
 
-    return
+    # is there test data
+    if xt is None or filteronly is None or opt is None or w0 is None:
+        xt = None
+
+    # if nargs < 6
+    if filteronly is None:
+        filteronly = False
+
+    if opt is None:
+        w0[opt] = w
+        w = w0
+    else:
+        opt = np.ones_like(w, dtype=bool)
+
+    # Figure out the correct way of dealing with the data
+    xall = np.concatenate((x, xt))
+
+    # Create an array of nan values with the same length as xt
+    nan_array = np.full_like(xt, np.nan)
+
+    # Vertically concatenate y and nan_array arrays
+    yall = np.concatenate((y, nan_array))
+
+    # Make sure the points are unique and in ascending order
+    sort_ind = np.argsort(xall, kind='mergesort')
+    xall = xall[sort_ind]
+    yall = yall[sort_ind]
+
+    # Only return test indices
+    return_ind = sort_ind[-len(xt):]
+
+    # Check
+    if np.std(np.diff(xall)) > 1e-12:
+        raise ValueError('This function only accepts \
+                         equidistant inputs for now.')
+
+    # *Set up model*
+
+    # Log transformed parameters
+    param = np.exp(w)
+
+    # Extract values
+    d = np.size(x)
+    sigma2 = param[1]
+
+    # Form the state space model
+    try:
+        F, L, Qc, H, Pinf, dF, dQc, dPinf = ss(x, param[1:])
+    except Exception:
+        if xt is None:
+            varargout = (np.nan, np.nan*param)
+            return varargout
+        else:
+            raise ValueError('Problems with state space model.')
+
+    # Concatenate derivatives
+    dF = np.concatenate((np.zeros(F.shape), dF), axis=2)
+    dQc = np.concatenate((np.zeros(Qc.shape), dQc), axis=2)
+    dPinf = np.concatenate((np.zeros(Pinf.shape), dPinf), axis=2)
+    dR = np.zeros((1, 1, len(param)))
+    dR[0, 0, 0] = 1
+
+    # *Do the stationary stuff*
+
+    # Parameters (this assumes the prior covariance function)
+    dt = xall[1] - xall[0]
+    A = expm(F * dt)
+    Q = Pinf - A*Pinf*A.T
+    Q = (Q+Q.T)/2
+    R = sigma2
+
+    # Solve the Riccatti equation for the predictive state covariance
+    try:
+        PP = solve_discrete_are(A.T, H.T, Q, R)
+    except Exception:
+        if xt is None:
+            varargout = (np.nan, np.nan*param)
+            return varargout
+        else:
+            raise ValueError('Unstable DARE solution!')
+
+    # Check the riccatti result
+    if np.any(np.abs
+              (np.linalg.eigvals(A.T @ PP @ A - PP @ H.T @
+                                 np.linalg.solve
+                                 (R + H @ PP @ H.T, H @ PP @ A) + Q)) >= 1):
+        raise ValueError('The Symplectic matrix has \
+                         eigenvalues on the unit circle')
+
+    # Innovation variance
+    S = H @ PP @ H.T+R
+
+    # Stationary gain
+    K = PP @ H.T @ np.linalg.inv(S)
+
+    # Precalculate
+    AKHA = A-K @ H @ A
+
+    # *Prediction of test inputs (filtering and smoothing)*
+
+    # Check that we are predicting
+    if xt is not None:
+        # Set initial state
+        m = np.zeros((F.shape[0], 1))
+        PF = PP - K*H*PP
+
+        # Allocate space for results
+        MS = np.zeros((m.shape[0], 1, yall.shape[0], 1))
+        PS = np.zeros((m.shape[0], m.shape[0], yall.shape[0]))
+
+        # *Forward filter*
+
+        # The filter recursion
+        for k in range(yall.shape[0]):
+            if not np.isnan(yall[k]):
+                # The stationary filter recursion
+                m = A @ K @ H @ A @ m + K @ yall[k]  # O(m^2)
+
+                # Store estimate
+                MS[:, k] = m
+                PS[:, :, k] = PF  # This is the same for all points
+            else:
+                m = A @ m
+                MS[:, k] = m
+                PS[:, :, k] = Pinf
+
+        # *Backward smoother*
+
+        GS = None
+
+        # Should we run the smoother?
+        if not filteronly:
+            # The gain and covariance
+            (L, notpositivedefinite) = np.linalg.cholesky(PP).T, False
+            G = PF @ A.T @ np.linalg.inv(L.T) @ np.linalg.inv(L)
+
+            # Solve the Riccati equation
+            QQ = PF - G @ PP @ G.T
+            QQ = (QQ + QQ.T)/2
+
+            P = solve_discrete_are(G.T, np.zeros_like(G), QQ)
+            PS[:, :, -1] = P
+
+            # Allocate space for storing the smoother gain matrix
+            GS = np.zeros((F.shape[0], F.shape[1], yall.shape[0]))
+
+            # Rauch-Tung-Striebel smoother
+            for k in range(MS.shape[1]-2, -1, -1):
+                # Backward iteration
+                m = MS[:, k] + G @ (m - A @ MS[:, k])  # O(m^2)
+
+                # Store estimate
+                MS[:, k] = m
+                PS[:, :, k] = P
+                GS[:, :, k] = G
+
+        # Output debug information
+        # Define the Python dictionary
+        out = {
+            'K': K,
+            'G': G,
+            'S': S,
+            'P': P,
+            'PP': PP
+        }
+
+        # These indices will remain to be returned
+        MS = MS[:, return_ind]
+        PS = PS[:, :, return_ind]
+
+        # Return mean
+        Eft = H @ MS
+
+        # Return variance
+        Varft = np.zeros((H.shape[0], H.shape[0], MS.shape[1]))
+        for k in range(MS.shape[1]):
+            Varft[:, :, k] = H @ PS[:, :, k] @ H.T
+
+        # Upper/lower 95% confidence
+        # The bounds
+        lb = Eft - 1.96 * np.sqrt(Varft)
+        ub = Eft + 1.96 * np.sqrt(Varft)
+
+        # return values
+        Eft_flat = Eft.flatten()
+        Varft_flat = Varft.flatten()
+        lb_flat = lb.flatten()
+        ub_flat = ub.flatten()
+
+        # Wil not estimate the joint covariance matrix
+        Covft = None
+
+        varargout = (Eft_flat, Varft_flat, Covft, lb_flat, ub_flat, out)
+
+    # *Evaluate negative log marginal likelihood and its gradient*
+    if xt is None:
+        # Size of inputs
+        d = F.shape[0]
+        nparam = len(param)
+
+        # Allocate space for derivative matrices
+        dA = np.zeros((d, d, nparam))
+        dPP = np.zeros((d, d, nparam))
+        dAKHA = np.zeros((d, d, nparam))
+        dK = np.zeros((d, 1, nparam))
+        dS = np.zeros((1, 1, nparam))
+        HdA = np.zeros((d, nparam))
+
+        # Precalculate Z and B
+        Z = np.zeros(d)
+        B = A @ K  # A @ PP @ H.T * np.linalg.inv(H @ PP @ H.T + R)
+
+        for j in range(len(param)):
+            # The first matrix for the matrix factor decomposition
+            FF = np.array([F, Z],
+                          [dF[:, :, j], F])
+
+            # Solve the matrix exponential
+            AA = expm(FF*dt)
+            dA[:, :, j] = AA[d:, :d]
+            dQ = dPinf[:, :, j] - dA[:, :, j] @ Pinf @ A.T - \
+                A @ dPinf[:, :, j] @ A.T - A @ Pinf @ dA[:, :, j].T
+            dQ = (dQ + dQ.T)/2
+
+            # Precalculate C
+            C = dA[:, :, j] @ PP @ A.T + A @ PP @ dA[:, :, j].T - \
+                dA[:, :, j] @ PP @ H.T @ B.T - B @ H @ PP @ dA[:, :, j].T + \
+                B @ dR[:, :, j] @ B.T + dQ
+            C = (C+C.T)/2
+
+            # Solve dPP
+            try:
+                dPP[:, :, j] = solve_discrete_are
+                ((A-B*H).T, np.zeros((d, d)), C)
+            except np.linalg.LinalgError:
+                varargout = (np.nan, np.nan*param)
+                return varargout
+
+            # Evaluate dS and dK
+            dS[:, :, j] = H @ dPP[:, :, j] @ H.T + dR[:, :, j]
+
+            dK[:, :, j] = dPP[:, :, j] @ H.T @ \
+                np.linalg.inv(S) - PP @ H.T @ np.linalg.inv(S) @ \
+                (H @ dPP[:, :, j] @ H.T + dR[:, :, j]) @ np.linalg.inv(S)
+
+            dAKHA[:, :, j] = dA[:, :, j] - \
+                dK[:, :, j] @ H @ A - K @ H @ dA[:, :, j]
+
+            HdA[:, j] = (H @ dA[:, :, j]).T
+
+        # Reshape for vectorization
+        dAKHAp = np.reshape(np.transpose(dAKHA, (0, 2, 1)), (-1, d))
+        dKp = np.reshape(dK, (-1, nparam))
+
+        # Size of inputs
+        steps = len(yall)
+        m = np.zeros(d, 1)
+        dm = np.zeros(d, nparam)
+
+        edata = 0.5 * np.log(2 * np.pi) * steps + 0.5 * \
+            np.log(np.linalg.det(S)) * len(x)
+        gdata = 0.5 * steps * np.sum(dS / S)
+
+        for k in range(1, steps + 1):
+            if y[k] is np.nan:
+                # Innovation mean
+                v = y[k] - H @ A @ m
+
+                # Marginal likelihood (approximation)
+                edata = edata + 0.5 * v**2 / S  # 0.5*np.sum(v/cS)**2
+
+                # The same as above without the loop
+                dv = -m @ HdA - H @ A @ dm
+                gdata = gdata + v * dv / S - 0.5 * v**2 * dS / S**2
+                dm = AKHA @ dm + dKp @ y[k]
+                dm += dAKHAp @ m
+
+                # The stationary filter recursion
+                AKHA @ m + K @ y[k]
+
+            else:
+                for j in range(nparam):
+                    dm[:, j] = A @ dm[:, j] + dA[:, :, j] @ m
+                m = A @ m
+
+        # Account for log-scale
+        gdata = gdata * np.exp(w)
+
+        # Return correct number of parameters
+        gdata = gdata[opt]
+
+        # Return negative log marginal likelihood and gradient
+        varargout = (edata, gdata)
+        return varargout
