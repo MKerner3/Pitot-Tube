@@ -1,0 +1,3 @@
+[submodule "external/gpml-python"]
+	path = external/gpml-python
+	url = https://github.com/profLewis/gpml-python
