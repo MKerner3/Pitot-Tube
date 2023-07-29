@@ -18,14 +18,14 @@ y = np.sin(2*np.pi*x) + np.sqrt(sigma2)*np.random.randn(len(x))
 # **Initial model parameters**
 
 # Initial model parameters (sigma2, magnSigma2, lengthScale)
-param = np.array[(.1, .1, .1)]
+param = np.array([.1, .1, .1])
 
 
 # **Set up full model**
 
 # Covariance function (Matern, nu=3/2)
 def k(r, p):
-    return p[1]*(1+np.sqrt(3)*abs(r)/p[2]) * np.exp(-np.sqrt(3)*np.abs(r)/p[2])
+    return p[0]*(1+np.sqrt(3)*abs(r)/p[1]) * np.exp(-np.sqrt(3)*np.abs(r)/p[1])
 
 
 # Derivatives of covariance function (Matern, nu=3/2)
@@ -55,7 +55,9 @@ w1 = result.x
 ll = result.fun
 
 # Solve
-Eft1, Varft1, Covft1, lb1, ub1 = gp.gp_solve(w1, x, y, k, x)
+xt = x.tolist()
+Eft1, Varft1, Covft1, lb1, ub1 = gp.gp_solve(w1, x, y, k, xt,
+                                             return_likelihood=False)
 
 # **Set up equivalent state space model**
 

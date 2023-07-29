@@ -3,7 +3,7 @@ from scipy.linalg import expm
 from scipy.linalg import solve_discrete_are
 
 
-def gp_solve(w, x, y, k, xt):
+def gp_solve(w, x, y, k, xt, return_likelihood=True):
     # Log transformed parameters
     param = np.exp(w)
 
@@ -40,7 +40,7 @@ def gp_solve(w, x, y, k, xt):
     alpha = np.linalg.solve(L.T, vv)
 
     # Do prediction
-    if xt is not None and not isinstance(xt, list):
+    if xt is not None and return_likelihood is False:
         # Make additional covariance matrices
         K22 = k(np.subtract.outer(xt, xt), param[1:])
         K21 = k(np.subtract.outer(xt, x), param[1:])
@@ -60,7 +60,7 @@ def gp_solve(w, x, y, k, xt):
         lb = Eft - conf_interval * np.sqrt(Varft)
         ub = Eft + conf_interval * np.sqrt(Varft)
 
-        return (Eft, Varft, Covft, lb, ub, (alpha, vv, L))
+        return (Eft, Varft, Covft, lb, ub)  # , (alpha, vv, L))
     # Evaluate marginal likelihood
     else:
 
@@ -74,8 +74,10 @@ def gp_solve(w, x, y, k, xt):
         if xt is not None:
             # Catch the derivatives
             dk = xt
+            # print('VALUES OF DK')
+            # print(dk)
 
-            # Allocate space
+            # Allocate spaceS
             eg = np.zeros(len(param))
 
             # Derivative w.r.t. sigma2
@@ -98,8 +100,8 @@ def gp_solve(w, x, y, k, xt):
             # Return derivatives
             eg = eg * np.exp(w)
 
-            # Return
-            return {e, eg}
+            # Return: TODO figure if it is necessary or better to output/use eg
+            return e  # (e, eg)
         else:
             return e
 
@@ -113,14 +115,13 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
 
     # Form state space model
     lambd = np.sqrt(3)/lengthScale
+    print(lambd)
 
     # Feedback matrix
-    F = np.array([0, 1],
-                 [-lambd**2, -2*lambd])
+    F = np.array([[0, 1], [-lambd**2, -2*lambd]])
 
     # Noise effect matrix
-    L = np.array([0],
-                 [1])
+    L = np.array([[0], [1]])
 
     # Spectral density
     Qc = 12*np.sqrt(3)/lengthScale**3 * magnSigma2
@@ -131,8 +132,8 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
     # Stationary Covariance
 
     # Calculate Pinf
-    Pinf = np.array([magnSigma2, 0],
-                    0, 3*magnSigma2/lengthScale**2)
+    Pinf = np.array([[magnSigma2, 0],
+                     [0, 3 * magnSigma2 / lengthScale**2]])
 
     # Calculate derivatives
     dFmagnSigma2 = np.array([[0, 0],
@@ -168,22 +169,24 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
             {'name': 'lengthScale', 'default': 1, 'opt': True}
         ]
     }
+    
+    # TODO check if params is needed anywhere
+    return (F, L, Qc, H, Pinf, dF, dQc, dPinf)  # params
 
-    return (F, L, Qc, H, Pinf, dF, dQc, dPinf, params)
 
-
-def ihgpr(w, x, y, ss, xt, filteronly, opt, w0):
+def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
     # *Check defaults*
 
     # is there test data
     if xt is None or filteronly is None or opt is None or w0 is None:
-        xt = None
+        xt = []
 
     # if nargs < 6
     if filteronly is None:
         filteronly = False
 
-    if opt is None:
+    if xt is not None and filteronly is not None and w0 is not None \
+            and opt is not None:
         w0[opt] = w
         w = w0
     else:
@@ -231,9 +234,9 @@ def ihgpr(w, x, y, ss, xt, filteronly, opt, w0):
             raise ValueError('Problems with state space model.')
 
     # Concatenate derivatives
-    dF = np.concatenate((np.zeros(F.shape), dF), axis=2)
-    dQc = np.concatenate((np.zeros(Qc.shape), dQc), axis=2)
-    dPinf = np.concatenate((np.zeros(Pinf.shape), dPinf), axis=2)
+    dF = np.hstack((np.zeros_like(F), dF))
+    dQc = np.hstack((np.zeros_like(Qc), dQc))
+    dPinf = np.hstack((np.zeros_like(Pinf), dPinf))
     dR = np.zeros((1, 1, len(param)))
     dR[0, 0, 0] = 1
 
