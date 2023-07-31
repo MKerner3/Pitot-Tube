@@ -1,8 +1,10 @@
 import numpy as np
 
-A = np.array([1, 2, 3])
-B = np.array([4, 5, 6])
-result = A * B
-print(result)
+# Given values
+magnSigma2 = 0.1
+lengthScale = 0.1
 
-print(2**3)
+# Calculate Pinf
+Pinf = np.array([[magnSigma2, 0],
+                 [0, 3 * magnSigma2 / lengthScale**2]])
+print(Pinf)

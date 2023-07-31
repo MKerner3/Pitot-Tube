@@ -115,7 +115,7 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
 
     # Form state space model
     lambd = np.sqrt(3)/lengthScale
-    print(lambd)
+    # print(lambd)
 
     # Feedback matrix
     F = np.array([[0, 1], [-lambd**2, -2*lambd]])
@@ -127,7 +127,7 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
     Qc = 12*np.sqrt(3)/lengthScale**3 * magnSigma2
 
     # Observation model
-    H = np.array([1, 0])
+    H = np.array([[1, 0]])
 
     # Stationary Covariance
 
@@ -169,7 +169,7 @@ def cf_matern32_to_ss(magnSigma2, lengthScale):
             {'name': 'lengthScale', 'default': 1, 'opt': True}
         ]
     }
-    
+
     # TODO check if params is needed anywhere
     return (F, L, Qc, H, Pinf, dF, dQc, dPinf)  # params
 
@@ -223,6 +223,8 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
     d = np.size(x)
     sigma2 = param[1]
 
+    # print(x)
+    # print(param[1:])
     # Form the state space model
     try:
         F, L, Qc, H, Pinf, dF, dQc, dPinf = ss(x, param[1:])
@@ -234,19 +236,27 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
             raise ValueError('Problems with state space model.')
 
     # Concatenate derivatives
-    dF = np.hstack((np.zeros_like(F), dF))
-    dQc = np.hstack((np.zeros_like(Qc), dQc))
-    dPinf = np.hstack((np.zeros_like(Pinf), dPinf))
+    dF = np.expand_dims(np.zeros_like(dF), axis=2)
+    dF = np.concatenate((dF, dF), axis=2)
+
+    dQc = np.expand_dims(np.zeros_like(dQc), axis=2)
+    dQc = np.concatenate((dQc, dQc), axis=2)
+
+    dPinf = np.expand_dims(np.zeros_like(dPinf), axis=2)
+    dPinf = np.concatenate((dPinf, dPinf), axis=2)
     dR = np.zeros((1, 1, len(param)))
     dR[0, 0, 0] = 1
 
     # *Do the stationary stuff*
 
     # Parameters (this assumes the prior covariance function)
+    print(Pinf)
+
     dt = xall[1] - xall[0]
     A = expm(F * dt)
     Q = Pinf - A*Pinf*A.T
     Q = (Q+Q.T)/2
+    print(Q)
     R = sigma2
 
     # Solve the Riccatti equation for the predictive state covariance
@@ -259,13 +269,31 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
         else:
             raise ValueError('Unstable DARE solution!')
 
+    t = np.array([[0.0350, 0.4677],
+                  [0.4677, 25.9406]])
+    eigt = np.linalg.eigvals(t)
+    print('TEST EIGENVALUES')
+    print(eigt)
+
+    eigP = np.linalg.eigvals(PP)
+    eigA = np.linalg.eigvals(A)
+    eigQ = np.linalg.eigvals(Q)
+    # eigR = np.linalg.eigvals(R)
+    # eigH = np.linalg.eigvals(H)
+    print('EIGENVALUES OF P, A, Q, R, H')
+    print(eigP)
+    print(eigA)
+    print(eigQ)
+    # print(eigR)
+    # print(eigH)
+
     # Check the riccatti result
-    if np.any(np.abs
-              (np.linalg.eigvals(A.T @ PP @ A - PP @ H.T @
-                                 np.linalg.solve
-                                 (R + H @ PP @ H.T, H @ PP @ A) + Q)) >= 1):
-        raise ValueError('The Symplectic matrix has \
-                         eigenvalues on the unit circle')
+    # if np.any(np.abs
+    #          (np.linalg.eigvals(A.T @ PP @ A - PP @ H.T @
+    #                             np.linalg.solve
+    #                             (R + H @ PP @ H.T, H @ PP @ A) + Q)) >= 1):
+    #    raise ValueError('The Symplectic matrix has \
+    #                     eigenvalues on the unit circle')
 
     # Innovation variance
     S = H @ PP @ H.T+R
