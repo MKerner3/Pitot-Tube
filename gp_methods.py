@@ -269,12 +269,7 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
         else:
             raise ValueError('Unstable DARE solution!')
 
-    t = np.array([[0.0350, 0.4677],
-                  [0.4677, 25.9406]])
-    eigt = np.linalg.eigvals(t)
-    print('TEST EIGENVALUES')
-    print(eigt)
-
+    # Test eigenvalues. Should they be less than and not equal to 1?
     eigP = np.linalg.eigvals(PP)
     eigA = np.linalg.eigvals(A)
     eigQ = np.linalg.eigvals(Q)
@@ -286,6 +281,12 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
     print(eigQ)
     # print(eigR)
     # print(eigH)
+
+    # FIXME find a better method to check for unstable DARE solutions
+    # https://github.com/AaltoML/IHGP/blob/master/matlab/ihgpr.m
+    # Equivalent to line 149, (if report = -1)
+    # Is there a better way to check for stability of the solution P? report
+    # is not a return variable like in the matlab implementation.
 
     # Check the riccatti result
     # if np.any(np.abs
