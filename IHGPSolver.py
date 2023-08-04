@@ -13,7 +13,8 @@ import gp_methods as gp
 np.random.seed(0)
 sigma2 = 0.1
 x = np.linspace(0, 6, num=100)
-y = np.sin(2*np.pi*x) + np.sqrt(sigma2)*np.random.randn(len(x))
+y = np.sin(6 - x) + np.sqrt(sigma2) * np.random.randn(len(x))
+# y = np.sin(2*np.pi*x) + np.sqrt(sigma2)*np.random.randn(len(x))
 
 # **Initial model parameters**
 
@@ -71,7 +72,12 @@ def ss(x, p):
 
 # Objective function for optimization
 def objective_function(w, x, y, ss):
-    return -gp.ihgpr(w, x, y, ss)
+    ihgpr_result = gp.ihgpr(w, x, y, ss)
+    if all(value is not None for value in ihgpr_result):
+        negated_result = tuple(-value for value in ihgpr_result)
+        return negated_result
+    else:
+        return (-1e6,)
 
 
 # Optimization options

@@ -250,13 +250,13 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
     # *Do the stationary stuff*
 
     # Parameters (this assumes the prior covariance function)
-    print(Pinf)
+    # print(Pinf)
 
     dt = xall[1] - xall[0]
     A = expm(F * dt)
     Q = Pinf - A*Pinf*A.T
     Q = (Q+Q.T)/2
-    print(Q)
+    # print(Q)
     R = sigma2
 
     # Solve the Riccatti equation for the predictive state covariance
@@ -275,10 +275,10 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
     eigQ = np.linalg.eigvals(Q)
     # eigR = np.linalg.eigvals(R)
     # eigH = np.linalg.eigvals(H)
-    print('EIGENVALUES OF P, A, Q, R, H')
-    print(eigP)
-    print(eigA)
-    print(eigQ)
+    # print('EIGENVALUES OF P, A, Q, R, H')
+    # print(eigP)
+    # print(eigA)
+    # print(eigQ)
     # print(eigR)
     # print(eigH)
 
@@ -314,7 +314,7 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
         PF = PP - K*H*PP
 
         # Allocate space for results
-        MS = np.zeros((m.shape[0], 1, yall.shape[0], 1))
+        MS = MS = np.zeros((m.shape[0], yall.shape[0]))
         PS = np.zeros((m.shape[0], m.shape[0], yall.shape[0]))
 
         # *Forward filter*
@@ -323,10 +323,11 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
         for k in range(yall.shape[0]):
             if not np.isnan(yall[k]):
                 # The stationary filter recursion
-                m = A @ K @ H @ A @ m + K @ yall[k]  # O(m^2)
+
+                m = A @ (K @ (H @ (A @ (m + K * yall[k]))))  # O(m^2)
 
                 # Store estimate
-                MS[:, k] = m
+                MS[:, k] = m.flatten()
                 PS[:, :, k] = PF  # This is the same for all points
             else:
                 m = A @ m
@@ -347,19 +348,23 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
             QQ = PF - G @ PP @ G.T
             QQ = (QQ + QQ.T)/2
 
-            P = solve_discrete_are(G.T, np.zeros_like(G), QQ)
+            RR = np.eye(QQ.shape[0])  # Identity matrix of the same size as QQ
+            P = solve_discrete_are(G.T, np.zeros_like(G), QQ, RR)
             PS[:, :, -1] = P
 
             # Allocate space for storing the smoother gain matrix
             GS = np.zeros((F.shape[0], F.shape[1], yall.shape[0]))
 
+            # print(MS[:, k].shape)
+            # print(m.shape)
             # Rauch-Tung-Striebel smoother
             for k in range(MS.shape[1]-2, -1, -1):
                 # Backward iteration
-                m = MS[:, k] + G @ (m - A @ MS[:, k])  # O(m^2)
+                m = MS[:, k].reshape(-1, 1) + \
+                    G @ (m - A @ MS[:, k].reshape(-1, 1))  # O(m^2)
 
                 # Store estimate
-                MS[:, k] = m
+                MS[:, k] = m.flatten()
                 PS[:, :, k] = P
                 GS[:, :, k] = G
 
@@ -500,4 +505,4 @@ def ihgpr(w, x, y, ss, opt=None, w0=None, xt=None, filteronly=None):
 
         # Return negative log marginal likelihood and gradient
         varargout = (edata, gdata)
-        return varargout
+    return varargout
