@@ -9,13 +9,14 @@ import numpy as np
 import torch
 
 import pyro
-from pyro.contrib.timeseries import IndependentMaternGP, LinearlyCoupledMaternGP
+from pyro.contrib.timeseries import (IndependentMaternGP,
+                                     LinearlyCoupledMaternGP)
 
 
 # download dataset from UCI archive
 def download_data():
     if not exists("eeg.dat"):
-        url = "http://archive.ics.uci.edu/ml/machine-learning-databases/00264/EEG%20Eye%20State.arff"
+        url = "https://tinyurl.com/yc8bcpr3"
         with open("eeg.dat", "wb") as f:
             f.write(urlopen(url).read())
 
@@ -48,7 +49,8 @@ def main(args):
     # set up model
     if args.model == "imgp":
         gp = IndependentMaternGP(
-            nu=1.5, obs_dim=obs_dim, length_scale_init=1.5 * torch.ones(obs_dim)
+            nu=1.5, obs_dim=obs_dim, length_scale_init=1.5 *
+            torch.ones(obs_dim)
         ).double()
     elif args.model == "lcmgp":
         num_gps = 9
@@ -98,10 +100,13 @@ def main(args):
             (T_onestep, obs_dim)
         )
         for t in range(T_onestep):
-            # predict one step into the future, conditioning on all previous data.
-            # note that each call to forecast() conditions on more data than the previous call
+            # predict one step into the future,
+            # conditioning on all previous data.
+
+            # note that each call to forecast() conditions
+            # on more data than the previous call
             dts = torch.tensor([1.0]).double()
-            pred_dist = gp.forecast(data[0 : T_train + t, :], dts)
+            pred_dist = gp.forecast(data[0: T_train + t, :], dts)
             onestep_means[t, :] = pred_dist.loc.data.numpy()
             if args.model == "imgp":
                 onestep_stds[t, :] = pred_dist.scale.data.numpy()
@@ -113,7 +118,7 @@ def main(args):
         # do (non-rolling) multi-step forecasting
         print("doing multi-step forecasting...")
         dts = (1 + torch.arange(T_multistep)).double()
-        pred_dist = gp.forecast(data[0 : T_train + T_onestep, :], dts)
+        pred_dist = gp.forecast(data[0: T_train + T_onestep, :], dts)
         multistep_means = pred_dist.loc.data.numpy()
         if args.model == "imgp":
             multistep_stds = pred_dist.scale.data.numpy()
@@ -188,14 +193,17 @@ def main(args):
 
 if __name__ == "__main__":
     assert pyro.__version__.startswith("1.8.6")
-    parser = argparse.ArgumentParser(description="contrib.timeseries example usage")
+    parser = argparse.ArgumentParser(description="contrib.timeseries \
+                                     example usage")
     parser.add_argument("-n", "--num-steps", default=300, type=int)
     parser.add_argument("-s", "--seed", default=0, type=int)
     parser.add_argument(
         "-m", "--model", default="imgp", type=str, choices=["imgp", "lcmgp"]
     )
-    parser.add_argument("-ilr", "--init-learning-rate", default=0.01, type=float)
-    parser.add_argument("-flr", "--final-learning-rate", default=0.0003, type=float)
+    parser.add_argument("-ilr", "--init-learning-rate",
+                        default=0.01, type=float)
+    parser.add_argument("-flr", "--final-learning-rate",
+                        default=0.0003, type=float)
     parser.add_argument("-b1", "--beta1", default=0.50, type=float)
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--plot", action="store_true")
