@@ -16,7 +16,7 @@ args = parser.parse_args()
 # Arduino set to COM5
 # If this errors, switch the value next to COM with what COM port you are
 # talking on.
-# ser = serial.Serial('COM5', 9600, timeout=1)
+ser = serial.Serial('COM5', 4800, timeout=1)
 
 # ariable/Data structure initialization
 # time.sleep(2)
@@ -46,14 +46,14 @@ keyboard.on_press(on_key_press)
 
 while cont:
     elapsed_time = time.perf_counter() - start_time
-    # line = ser.readline()  # read a byte
-    if True:  # line:
-        # string = line.decode()  # convert byte string to unicode string
-        # string = string.replace('\r\n', '')
-        if True:  # not string.isspace() or len(string) != 0:
+    line = ser.readline()  # read a byte
+    if line:
+        string = line.decode()  # convert byte string to unicode string
+        string = string.replace('\r\n', '')
+        if not string.isspace() or len(string) != 0:
             try:
                 # convert unicode string to int
-                num = np.sin(elapsed_time)  # round(float(string), 16)
+                num = round(float(string), 16)
 
                 # append data
                 times.append(elapsed_time)
@@ -64,16 +64,17 @@ while cont:
                 continue  # Rejects bad string and continues while loop
 
     # len(times) != 0 and len(data) > num_pts:
-    if times[-1] - times[0] > 5 or len(data) > num_pts:
-        data.popleft()
-        times.popleft()
+    if len(times) != 1 and len(data) != 0:
+        if times[-1] - times[0] > 5 or len(data) > num_pts:
+            data.popleft()
+            times.popleft()
 
     if args.graph:
         curve.set_data(times, data)
         # Adjust the plot limits if needed
         ax.relim()
         ax.autoscale_view()
-        plt.pause(0.1)
+        plt.pause(0.01)
 
 keyboard.unhook_all()
 # Prints/Plots some diagnostic info to look at code behavior.
@@ -82,4 +83,4 @@ plt.show()
 
 print("Finished")
 
-# ser.close()
+ser.close()
