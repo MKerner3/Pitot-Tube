@@ -6,10 +6,6 @@ from collections import deque
 import keyboard
 import argparse
 import matplotlib.pyplot as plt
-import random
-from matplotlib.animation import FuncAnimation
-from random import randrange
-from datetime import datetime
 
 parser = argparse.ArgumentParser(description='Enable live graphing or \
                                   choose graphing after data collection')
@@ -50,7 +46,6 @@ keyboard.on_press(on_key_press)
 
 while cont:
     elapsed_time = time.perf_counter() - start_time
-    
     # line = ser.readline()  # read a byte
     if True:  # line:
         # string = line.decode()  # convert byte string to unicode string
