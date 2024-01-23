@@ -84,7 +84,7 @@ while cont:
 
 keyboard.unhook_all()
 
-wb.save('dualreadtest.xlsx')
+wb.save('functionalitytest.xlsx')
 
 print("Finished")
 
