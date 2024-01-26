@@ -22,21 +22,33 @@ class MainWindow(QtWidgets.QMainWindow):
         styles = {"color": "red", "font-size": "18px"}
         self.plot_graph.setLabel("left", "Data", **styles)
         self.plot_graph.setLabel("bottom", "Time", **styles)
-        #self.plot_graph.addLegend()
+        self.plot_graph.addLegend()
         self.plot_graph.showGrid(x=True, y=True)
         self.plot_graph.setYRange(2.5,3.3)
         self.time = [0] * self.xsize
         self.ain1data = [0] * self.xsize
+        self.ain2data = [0] * self.xsize
         # Get a line reference
-        self.line = self.plot_graph.plot(
+        self.line0 = self.plot_graph.plot(
             self.time,
             self.ain1data,
-            name="Sensor",
+            name="Sensor 0",
             pen=pen,
-            symbol="+",
+            symbol="o",
             symbolSize=15,
             symbolBrush="b",
         )
+
+        self.line1 = self.plot_graph.plot(
+            self.time,
+            self.ain2data,
+            name="Sensor 1",
+            pen=pen,
+            symbol="x",
+            symbolSize=15,
+            symbolBrush="r",
+        )
+
         # Add a timer to simulate new ain1data measurements
         self.timer = QtCore.QTimer()
         self.timer.setInterval(0) # Delay between readings (in milliseconds)      ################# DELAY PARAMETER #################
@@ -61,8 +73,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.time = self.time[1:]
             self.time.append(elapsed)
             self.ain1data = self.ain1data[1:]
-            self.ain1data.append(results[0]) ####==================================####
-            self.line.setData(self.time, self.ain1data)
+            self.ain1data.append(results[0])
+
+            self.ain2data = self.ain2data[1:]
+            self.ain2data.append(results[1])
+
+            self.line0.setData(self.time, self.ain1data)
+            self.line1.setData(self.time, self.ain2data)
             
             ljm.waitForNextInterval(intervalHandle)
             if loopAmount != "infinite":
