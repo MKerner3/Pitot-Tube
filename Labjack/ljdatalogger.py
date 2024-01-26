@@ -106,7 +106,6 @@ ljm.eWriteNames(handle, numFrames, aNames, aValues)
 
 print("\nSet configuration:")
 
-start_time = time.time()   # Records starting time of the loop.
 for i in range(numFrames):
     print("    %s : %f" % (aNames[i], aValues[i]))
 
@@ -115,6 +114,7 @@ numFrames = 2
 aNames = ["AIN0", "AIN2"]
 
 print("\nStarting %s read loops.%s\n" % (str(loopAmount), loopMessage))
+start_time = time.time()   # Records starting time of the loop.
 intervalHandle = 1
 ljm.startInterval(intervalHandle, 10000)  # Delay between readings (in microseconds)      ################# DELAY PARAMETER #################
 i = 0
@@ -141,13 +141,3 @@ while True:
 # Close handles
 ljm.cleanInterval(intervalHandle)
 ljm.close(handle)
-
-#================================================Data Handling================================================#
-
-# Plot data
-plt.plot(time_elapsed, plot1_results, label = 'AIN0 Output')
-plt.plot(time_elapsed, plot2_results, label = 'AIN2 Output')
-plt.xlabel('Elapsed Time (seconds)')
-plt.ylabel('Voltage (V)')
-plt.legend()
-plt.show()
