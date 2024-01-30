@@ -2,6 +2,7 @@
 
 import sys
 import time
+import openpyxl
 import numpy as np
 import matplotlib.pyplot as plt
 from labjack import ljm
@@ -57,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_plot(self):
         global loop_counter
-        intervalHandle = 1
+        global intervalHandle
         ljm.startInterval(intervalHandle, 10000)  # Delay between readings (in microseconds)      ################# DELAY PARAMETER #################
         try:
             results = ljm.eReadNames(handle, numFrames, aNames)
@@ -81,9 +82,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.line0.setData(self.time, self.ain1data)
             self.line1.setData(self.time, self.ain2data)
             
+            ws.cell(row=last_row+loop_counter, column=1).value = elapsed
+            ws.cell(row=last_row+loop_counter, column=2).value = results[0]
+            ws.cell(row=last_row+loop_counter, column=3).value = results[1]
+
+            loop_counter = loop_counter + 1
+
             ljm.waitForNextInterval(intervalHandle)
             if loopAmount != "infinite":
-                loop_counter = loop_counter + 1
                 if loop_counter >= loopAmount:
                     print("Break: Loop Amount Reached!")
                     sys.exit()
@@ -98,6 +104,13 @@ plot1_results = []    # Results for plot 1 at the end of the loop
 plot2_results = []    # Results for plot 2 at the end of the loop
 
 time_elapsed = []     # Time from first measurement to ith measurement
+
+wb = openpyxl.Workbook()
+ws = wb.active
+last_row = ws.max_row + 1
+ws.cell(row=1, column=1).value = "Time Elapsed (s)"
+ws.cell(row=1, column=2).value = "Sensor 0 Voltage (V)"
+ws.cell(row=1, column=3).value = "Sensor 1 Voltage (V)"
 
 loopMessage = ""
 if len(sys.argv) > 1:
@@ -115,6 +128,7 @@ else:
     loopMessage = " Exit plot window to stop."
 
 loop_counter = 0 # loop counter
+intervalHandle = 1
 
 # Open first found LabJack
 handle = ljm.openS("T7", "USB", "ANY")  # T7 device, USB connection, Any identifier
@@ -172,4 +186,14 @@ start_time = time.time()   # Records starting time of the loop.
 app = QtWidgets.QApplication([])
 main = MainWindow()
 main.show()
-sys.exit(app.exec_())
+
+# Clean up running labjack data collection and real time loop
+app.exec_() 
+ljm.cleanInterval(intervalHandle)
+ljm.close(handle)
+
+# Post Processing #
+wb.save('results.xlsx')
+
+
+
