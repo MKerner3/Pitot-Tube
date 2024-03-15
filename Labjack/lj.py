@@ -193,7 +193,7 @@ ljm.cleanInterval(intervalHandle)
 ljm.close(handle)
 
 # Post Processing #
-wb.save('results.xlsx')
+wb.save('lowhightest.xlsx')
 
 
 
