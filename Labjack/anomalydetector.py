@@ -123,14 +123,25 @@ class MainWindow(QtWidgets.QMainWindow):
             print("Time-insensitive anomalies detected (between sensors):")
             for anomaly in time_insensitive_anomalies:
                 print(f"Sensor {anomaly[0]}: Value = {anomaly[1]}, Deviation = {anomaly[2]:.2f}")
-            #TODO: Add call to change DAC voltage so arduino can stop the stepper motor and record the radial anomaly
+            
+            # Change DAC voltage so arduino can stop the stepper motor and record the radial anomaly
+            DACaddress = 1000 # DAC0
+            datatype = ljm.constants.FLOAT32
+            voltvalue = 1.0 # Write 1.0 V
+            ljm.eWriteAddress(handle, DACaddress, datatype, voltvalue)
+
     
         if time_sensitive_anomalies:
             print("Time-sensitive anomalies detected (over time):")
             for anomaly in time_sensitive_anomalies:
                 print(f"Sensor {anomaly[0]}: Value = {anomaly[1]}, Change = {anomaly[2]:.2f}")
-            #TODO: Add call to change DAC voltage so arduino can actuate the motor around the anomaly
-    
+            
+            # Change DAC voltage so arduino can actuate the motor around the circumferential anomaly
+            DACaddress = 1000 # DAC0
+            datatype = ljm.constants.FLOAT32
+            voltvalue = 2.0 # Write 2.0 V
+            ljm.eWriteAddress(handle, DACaddress, datatype, voltvalue)
+
         # Return True if any anomaly was detected, False otherwise
         return bool(time_insensitive_anomalies or time_sensitive_anomalies)
 
