@@ -73,14 +73,14 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         # Add a timer to simulate new aindata measurements
-        self.check_interval = 2.0
+        self.check_interval = 0.1
         self.timer = QtCore.QTimer()
         self.timer.setInterval(0) # Delay between readings (in milliseconds)      ################# DELAY PARAMETER #################
         self.timer.timeout.connect(self.update_plot)
         self.timer.start()
 
     ################# ANOMALY THRESHOLD PARAMETERS - RADIAL AND CIRCUMFERENTIAL #################
-    def check_anomalies(self, result0, result1, result2, result3, threshold = 0.2, change_threshold = 0.2):
+    def check_anomalies(self, result0, result1, result2, result3, threshold = 0.2, change_threshold = 2.0):
 
         # Define bias for each sensor (Average voltage should be close to 2.66 V)
         result0bias = 0.01
@@ -158,7 +158,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # Interval timer to check flow anomalies
             if (elapsed > self.check_interval):
                 self.check_anomalies(results[0], results[1], results[2], results[3])
-                self.check_interval = self.check_interval + 2.0
+                self.check_interval = self.check_interval + 0.1
+                #print(self.check_interval) debugger diagnostic
 
             # prints voltages to terminal
             #print("AIN0 : %f V, AIN1 : %f V, AIN2 : %f V, AIN3 : %f V" % (results[0], results[1], results[2], results[3]))
