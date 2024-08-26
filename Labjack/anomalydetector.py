@@ -224,8 +224,8 @@ last_row = ws.max_row + 1
 ws.cell(row=1, column=1).value = "Time Elapsed (s)"
 ws.cell(row=1, column=2).value = "Sensor 0 Voltage (V)"
 ws.cell(row=1, column=3).value = "Sensor 1 Voltage (V)"
-ws.cell(row=1, column=2).value = "Sensor 2 Voltage (V)"
-ws.cell(row=1, column=3).value = "Sensor 3 Voltage (V)"
+ws.cell(row=1, column=4).value = "Sensor 2 Voltage (V)"
+ws.cell(row=1, column=5).value = "Sensor 3 Voltage (V)"
 
 loopMessage = ""
 if len(sys.argv) > 1:
@@ -315,4 +315,4 @@ ljm.cleanInterval(intervalHandle)
 ljm.close(handle)
 
 # Post Processing #
-#wb.save('lowhightest.xlsx')
+#wb.save('demonstration.xlsx')
