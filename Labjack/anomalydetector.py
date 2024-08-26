@@ -106,14 +106,14 @@ class MainWindow(QtWidgets.QMainWindow):
         for i, value in enumerate(current_values):
            deviation = abs(value - average_value)
            if deviation > threshold:
-                time_insensitive_anomalies.append((i + 1, value, deviation))
+                time_insensitive_anomalies.append((i, value, deviation))
 
         # Check for time-sensitive anomalies (between time periods)
         if self.previous_readings[0] is not None:  # Ensure it's not the first run
             for i, (current, previous) in enumerate(zip(current_values, self.previous_readings)):
                 change = abs(current - previous)
                 if change > change_threshold:
-                    time_sensitive_anomalies.append((i + 1, current, change))
+                    time_sensitive_anomalies.append((i, current, change))
     
         # Update previous readings to the current ones
         self.previous_readings = current_values
@@ -157,7 +157,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # Interval timer to check flow anomalies
             if (elapsed > self.check_interval):
-                #self.check_anomalies(results[0], results[1], results[2], results[3])
+                self.check_anomalies(results[0], results[1], results[2], results[3])
                 self.check_interval = self.check_interval + 2.0
 
             # prints voltages to terminal
