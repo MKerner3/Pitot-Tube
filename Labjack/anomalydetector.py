@@ -81,7 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.start()
 
     ################# ANOMALY THRESHOLD PARAMETERS - RADIAL AND CIRCUMFERENTIAL #################
-    def check_anomalies(self, result0, result1, result2, result3, threshold = 69, change_threshold = 0.2): # threshold = 0.2, 69 placeholder
+    def check_anomalies(self, result0, result1, result2, result3, threshold = 0.2, change_threshold = 0.2):
 
         # Define bias for each sensor (Average voltage should be close to 2.66 V)
         result0bias = 0.01
