@@ -74,13 +74,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Add a timer to simulate new aindata measurements
         self.check_interval = 0.1
+        self.time_period_interval = 2.0
         self.timer = QtCore.QTimer()
         self.timer.setInterval(0) # Delay between readings (in milliseconds)      ################# DELAY PARAMETER #################
         self.timer.timeout.connect(self.update_plot)
         self.timer.start()
 
     ################# ANOMALY THRESHOLD PARAMETERS - RADIAL AND CIRCUMFERENTIAL #################
-    def check_anomalies(self, result0, result1, result2, result3, threshold = 0.2, change_threshold = 2.0):
+    def check_anomalies(self, result0, result1, result2, result3, threshold = 69, change_threshold = 0.2): # threshold = 0.2, 69 placeholder
 
         # Define bias for each sensor (Average voltage should be close to 2.66 V)
         result0bias = 0.01
@@ -107,16 +108,19 @@ class MainWindow(QtWidgets.QMainWindow):
            deviation = abs(value - average_value)
            if deviation > threshold:
                 time_insensitive_anomalies.append((i, value, deviation))
-
-        # Check for time-sensitive anomalies (between time periods)
-        if self.previous_readings[0] is not None:  # Ensure it's not the first run
-            for i, (current, previous) in enumerate(zip(current_values, self.previous_readings)):
-                change = abs(current - previous)
-                if change > change_threshold:
-                    time_sensitive_anomalies.append((i, current, change))
     
-        # Update previous readings to the current ones
-        self.previous_readings = current_values
+        # Update previous readings to the current ones and check for time-sensitive anomalies (between time periods)
+        if self.check_interval > self.time_period_interval:
+
+            if self.previous_readings[0] is not None:  # Ensure it's not the first run
+                for i, (current, previous) in enumerate(zip(current_values, self.previous_readings)):
+                    change = abs(current - previous)
+                    if change > change_threshold:
+                        time_sensitive_anomalies.append((i, current, change))
+
+            self.previous_readings = current_values
+            print('Stored current data readings')
+            self.time_period_interval = self.time_period_interval + 2.0
 
         # Return or log results
         if time_insensitive_anomalies:
