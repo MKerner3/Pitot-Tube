@@ -35,6 +35,7 @@ import sys
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.io
 
 from labjack import ljm
 
@@ -75,8 +76,11 @@ if deviceType == ljm.constants.dtT4:
     #   Resolution index = Default (0)
     #   Settling, in microseconds = Auto (0)
     aNames = ["AIN0_RESOLUTION_INDEX", "AIN0_SETTLING_US",
-             "AIN2_RESOLUTION_INDEX", "AIN2_SETTLING_US"]
-    aValues = [0, 0, 0, 0]
+             "AIN1_RESOLUTION_INDEX", "AIN1_SETTLING_US",
+             "AIN2_RESOLUTION_INDEX", "AIN2_SETTLING_US",
+             "AIN3_RESOLUTION_INDEX", "AIN3_SETTLING_US"
+             ]
+    aValues = [0, 0, 0, 0, 0, 0, 0, 0]
 else:
     # LabJack T7 and T8 configuration
 
@@ -84,8 +88,11 @@ else:
     #   Range: +/-10.0 V (10.0)
     #   Resolution index = Default (0)
     aNames = ["AIN0_RANGE", "AIN0_RESOLUTION_INDEX",
-             "AIN2_RANGE", "AIN2_RESOLUTION_INDEX"]
-    aValues = [10.0, 0, 10.0, 0]
+             "AIN1_RANGE", "AIN1_RESOLUTION_INDEX",
+             "AIN2_RANGE", "AIN2_RESOLUTION_INDEX",
+             "AIN3_RANGE", "AIN3_RESOLUTION_INDEX"
+             ]
+    aValues = [10.0, 0, 10.0, 0, 10.0, 0, 10.0, 0]
 
     # Negative channel and settling configurations do not apply to the T8
     if deviceType == ljm.constants.dtT7:
@@ -104,8 +111,8 @@ for i in range(numFrames):
     print("    %s : %f" % (aNames[i], aValues[i]))
 
 # Read AIN0 and AIN2 from the LabJack with eReadNames in a loop.
-numFrames = 2
-aNames = ["AIN0", "AIN2"]
+numFrames = 4
+aNames = ["AIN0", "AIN1", "AIN2", "AIN3"]
 
 address = 1000 # DAC0
 dataType = ljm.constants.FLOAT32
@@ -119,24 +126,38 @@ intervalHandle = 1
 ljm.startInterval(intervalHandle, 10000)  # Delay between readings (in microseconds)      ################# DELAY PARAMETER #################
 i = 0
 
-## TODO make some sort of storage system for positions along the rail (Positions 1-N)
-# Since the motor goes back and forth, need to figure out how to choose which position to store with each position change
-# This likely involves just using the loop variable to determine which position to store data in
+probedict = {}
+totaldict = {}
 
-# Additionally, don't want to make one giant vector because post-processing would become a mess in attempts to split the data based
-# on what time it got recorded
-# Therefore, make an object similar to a cell array and a variable indicating how many back and forths the rake did to make
-# post processing easier
-# Maybe make it export to matlab so patrick can also work on the data reduction
+def recordData(handle, numFrames, aNames, pos, iterations, probedict, totaldict, dir):
+    probe0data = np.zeros((iterations, 1))
+    probe1data = np.zeros((iterations, 1))
+    probe2data = np.zeros((iterations, 1))
+    probe3data = np.zeros((iterations, 1))
 
-def recordData(handle, numFrames, aNames):
-    ## TODO make this store data in a certain position cell array object (if that exists in python, idk)
-    results = ljm.eReadNames(handle, numFrames, aNames)
-    timestamp = time.time()  # Records timestamp of data log.
-    elapsed = timestamp - start_time # Elapsed time (seconds)
+    for i in range(iterations):
+        results = ljm.eReadNames(handle, numFrames, aNames)
+        probe0data[i, 0] = results[0]
+        probe1data[i, 0] = results[1]
+        probe2data[i, 0] = results[2]
+        probe3data[i, 0] = results[3]
+        #timestamp = time.time()  # Records timestamp of data log.
+        #elapsed = timestamp - start_time # Elapsed time (seconds)
+    probeposdata = np.hstack([probe0data, probe1data, probe2data, probe3data])
+    if dir == 0:
+        probedict[pos] = probeposdata # store in intermediate dictionary
+    if dir == 1:
+        probedict[14 - pos] = probeposdata # store in intermediate dictionary
+    if(len(probedict)) == 15: # once intermediate dictionary has every position, transfer to total dictionary
+        for j in range(len(probedict)):
+            if dir == 0:
+                print("Transferring slew data into slew dictionary...")
+                totaldict[len(totaldict)] = probedict[j] # length of the total dictionary = index to place next value at
+            if dir == 1:
+                print("Transferring reverse slew data into slew dictionary...")
+                totaldict[len(totaldict)] = probedict[(len(probedict) - 1) - j]
+        probedict.clear() # reset intermediate dictionary
 
-
-    print("AIN0 : %f V, AIN2 : %f V, Time : %f V" % (results[0], results[1], elapsed))
 
 while True:
     try:
@@ -149,39 +170,39 @@ while True:
 
         for j in range(15):
             print(j)
-            # turn on (forward)
-            ljm.eWriteAddress(handle, address, dataType, forwardValue)
-            motor_timer = time.time()
+            motor_timer = time.time() # start timer
+            # record data for x=200 points averaging x < 2s
+            print("Logging data...")
+            recordData(handle, numFrames, aNames, j, 150, probedict, totaldict, 0)
             motor_time = time.time()
-            while motor_time - motor_timer < 0.25:
+            if j != 14:
+                print("Finished logging. Slewing to next position.")
+                ljm.eWriteAddress(handle, address, dataType, forwardValue)
                 motor_time = time.time()
-            # when timer exceeds .25 seconds send off voltage
-            ljm.eWriteAddress(handle, address, dataType, stopValue)
-            while motor_time - motor_timer < 2.5:
-                motor_time = time.time()
-            # when timer exceeds 2.5 seconds, record data for 2 seconds
-            # alternatively, record data for x points averaging x < 2.5s
-            recordData(handle, numFrames, aNames)
+                while motor_time - motor_timer < 2.5:
+                    motor_time = time.time()
+                # when motor timer exceeds .25 seconds from data collection send off voltage
+                ljm.eWriteAddress(handle, address, dataType, stopValue)
             while motor_time - motor_timer < 5:
                 motor_time = time.time()
             # when timer exceeds 2 seconds continue loop
             continue
 
         for k in range(15):
-            print(k)
-            # turn on (reverse)
-            ljm.eWriteAddress(handle, address, dataType, reverseValue)
-            motor_timer = time.time()
+            print(14 - k)
+            motor_timer = time.time() # start timer
+            # record data for x=200 points averaging x < 2s
+            print("Logging data...")
+            recordData(handle, numFrames, aNames, k, 150, probedict, totaldict, 1)
             motor_time = time.time()
-            while motor_time - motor_timer < 0.25:
+            if k != 14:
+                print("Finished logging. Slewing to next position.")
+                ljm.eWriteAddress(handle, address, dataType, reverseValue)
                 motor_time = time.time()
-            # when timer exceeds .25 seconds send off voltage
-            ljm.eWriteAddress(handle, address, dataType, stopValue)
-            while motor_time - motor_timer < 2.5:
-                motor_time = time.time()
-                # when timer exceeds 2.5 seconds, record data for 2 seconds
-            # alternatively, record data for x points averaging x < 2.5s
-            recordData(handle, numFrames, aNames)
+                while motor_time - motor_timer < 2.5:
+                    motor_time = time.time()
+                # when motor timer exceeds .25 seconds from data collection send off voltage
+                ljm.eWriteAddress(handle, address, dataType, stopValue)
             while motor_time - motor_timer < 5:
                 motor_time = time.time()
             # when timer exceeds 2 seconds continue loop
@@ -201,3 +222,8 @@ while True:
 # Close handles
 ljm.cleanInterval(intervalHandle)
 ljm.close(handle)
+
+# Data Export
+mat_data = {"cell_array": [totaldict[key] for key in totaldict]}
+
+scipy.io.savemat("voltage_data.mat", mat_data)
