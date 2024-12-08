@@ -144,11 +144,12 @@ def recordData(handle, numFrames, aNames, pos, iterations, probedict, totaldict,
         #timestamp = time.time()  # Records timestamp of data log.
         #elapsed = timestamp - start_time # Elapsed time (seconds)
     probeposdata = np.hstack([probe0data, probe1data, probe2data, probe3data])
+    # TODO do differential pressure calculations here 
     if dir == 0:
         probedict[pos] = probeposdata # store in intermediate dictionary
     if dir == 1:
-        probedict[14 - pos] = probeposdata # store in intermediate dictionary
-    if(len(probedict)) == 15: # once intermediate dictionary has every position, transfer to total dictionary
+        probedict[29 - pos] = probeposdata # store in intermediate dictionary
+    if(len(probedict)) == 30: # once intermediate dictionary has every position, transfer to total dictionary
         for j in range(len(probedict)):
             if dir == 0:
                 print("Transferring slew data into slew dictionary...")
@@ -168,14 +169,14 @@ while True:
         #print("\neWriteAddress: ")
         #print("    Address - %i, data type - %i, value : %f" % (address, dataType, value))
 
-        for j in range(15):
+        for j in range(30):
             print(j)
             motor_timer = time.time() # start timer
             # record data for x=200 points averaging x < 2s
             print("Logging data...")
             recordData(handle, numFrames, aNames, j, 150, probedict, totaldict, 0)
             motor_time = time.time()
-            if j != 14:
+            if j != 29:
                 print("Finished logging. Slewing to next position.")
                 ljm.eWriteAddress(handle, address, dataType, forwardValue)
                 motor_time = time.time()
@@ -187,15 +188,16 @@ while True:
                 motor_time = time.time()
             # when timer exceeds 2 seconds continue loop
             continue
-
-        for k in range(15):
-            print(14 - k)
+        
+        '''
+        for k in range(30):
+            print(29 - k)
             motor_timer = time.time() # start timer
             # record data for x=200 points averaging x < 2s
             print("Logging data...")
             recordData(handle, numFrames, aNames, k, 150, probedict, totaldict, 1)
             motor_time = time.time()
-            if k != 14:
+            if k != 29:
                 print("Finished logging. Slewing to next position.")
                 ljm.eWriteAddress(handle, address, dataType, reverseValue)
                 motor_time = time.time()
@@ -207,6 +209,7 @@ while True:
                 motor_time = time.time()
             # when timer exceeds 2 seconds continue loop
             continue
+        '''
 
         ljm.waitForNextInterval(intervalHandle)
         if loopAmount != "infinite":
@@ -226,4 +229,4 @@ ljm.close(handle)
 # Data Export
 mat_data = {"cell_array": [totaldict[key] for key in totaldict]}
 
-scipy.io.savemat("voltage_data.mat", mat_data)
+scipy.io.savemat("tare_manip_data.mat", mat_data)
